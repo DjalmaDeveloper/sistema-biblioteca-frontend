@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .hero-section {
+            padding: 80px 0;
+            color: white;
+            text-align: center;
+        }
+
+        .hero-section h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-section p {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+        }
+
+        .card-module {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .card-module:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-module i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-module h3 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .card-module p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 40px 0;
+            color: white;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-item h2 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-item p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sistema de Autenticação -->
+    <script src="js/auth.js"></script>
+    <script>
+        // Proteger página - requer login
+        Auth.protectPage();
+
+        // Exibir informações do usuário no navbar
+        document.addEventListener('DOMContentLoaded', function () {
+            const user = Auth.getUser();
+            if (user) {
+                const navbarNav = document.querySelector('.navbar-nav');
+                const userItem = document.createElement('li');
+                userItem.className = 'nav-item dropdown';
+                userItem.innerHTML = `
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle"></i> ${user.nome}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Perfil</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Configurações</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="Auth.logout(); return false;">
+                                    <i class="fas fa-sign-out-alt"></i> Sair
+                                </a></li>
+                            </ul>
+                        `;
+                navbarNav.appendChild(userItem);
+            }
+        });
+    </script>
+    <!-- Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(0,0,0,0.2);">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-book-reader"></i> Biblioteca Online
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="autores.html">Autores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="livros.html">Livros</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="emprestimos.html">Empréstimos</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1><i class="fas fa-book-open"></i> Sistema de Biblioteca</h1>
+            <p>Gerencie autores, livros e empréstimos de forma simples e eficiente</p>
+        </div>
+    </div>
+    
+    <!-- Estatísticas -->
+    <div class="container">
+        <div class="stats-section">
+            <div class="row">
+                <div class="col-md-4 stat-item">
+                    <h2 id="totalAutores">-</h2>
+                    <p>Autores Cadastrados</p>
+                </div>
+                <div class="col-md-4 stat-item">
+                    <h2 id="totalLivros">-</h2>
+                    <p>Livros Disponíveis</p>
+                </div>
+                <div class="col-md-4 stat-item">
+                    <h2 id="totalEmprestimos">-</h2>
+                    <p>Empréstimos Ativos</p>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Módulos -->
+        <div class="row">
+            <div class="col-md-4">
+                <a href="autores.html" class="card-module">
+                    <i class="fas fa-user-tie"></i>
+                    <h3>Autores</h3>
+                    <p>Cadastre e gerencie autores da biblioteca</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="livros.html" class="card-module">
+                    <i class="fas fa-book"></i>
+                    <h3>Livros</h3>
+                    <p>Controle o acervo de livros disponíveis</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="emprestimos.html" class="card-module">
+                    <i class="fas fa-handshake"></i>
+                    <h3>Empréstimos</h3>
+                    <p>Gerencie empréstimos e devoluções</p>
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Configuração da API -->
+    <script src="js/config.js"></script>
+    
+    <!-- Script da Aplicação -->
+    <script>
+        // Carregar estatísticas
+        async function loadStatistics() {
+            try {
+                // Buscar autores
+                const autores = await fetchAPI('/autores');
+                document.getElementById('totalAutores').textContent = autores.length;
+
+                // Buscar livros
+                const livros = await fetchAPI('/livros');
+                document.getElementById('totalLivros').textContent = livros.length;
+
+                // Buscar empréstimos
+                const emprestimos = await fetchAPI('/emprestimos');
+                document.getElementById('totalEmprestimos').textContent = emprestimos.length;
+
+                console.log('✅ Estatísticas carregadas com sucesso');
+            } catch (error) {
+                console.error('❌ Erro ao carregar estatísticas:', error);
+                document.getElementById('totalAutores').textContent = '0';
+                document.getElementById('totalLivros').textContent = '0';
+                document.getElementById('totalEmprestimos').textContent = '0';
+            }
+        }
+
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Sistema de Biblioteca inicializado');
+            console.log('📡 API URL:', API_CONFIG.baseURL);
+
+            await loadStatistics();
+
+            // Atualizar estatísticas a cada 30 segundos
+            setInterval(loadStatistics, 30000);
+        });
+    </script>
+</body>
+
+</html>

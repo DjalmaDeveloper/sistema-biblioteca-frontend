@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Empréstimos - Sistema Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+
+        .container-main {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-header {
+            color: white;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-custom:hover {
+            transform: scale(1.05);
+            color: white;
+        }
+
+        .badge-ativo {
+            background-color: #ffc107;
+        }
+
+        .badge-devolvido {
+            background-color: #28a745;
+        }
+
+        .badge-atrasado {
+            background-color: #dc3545;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-buttons button {
+            margin: 0 5px;
+        }
+
+        .navbar-dark {
+            background: rgba(0, 0, 0, 0.2) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sistema de Autenticação -->
+    <script src="js/auth.js"></script>
+    <script>
+        // Proteger página - requer login
+        Auth.protectPage();
+
+        // Exibir informações do usuário no navbar
+        document.addEventListener('DOMContentLoaded', function () {
+            const user = Auth.getUser();
+            if (user) {
+                const navbarNav = document.querySelector('.navbar-nav');
+                const userItem = document.createElement('li');
+                userItem.className = 'nav-item dropdown';
+                userItem.innerHTML = `
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> ${user.nome}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Perfil</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Configurações</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="Auth.logout(); return false;">
+                                <i class="fas fa-sign-out-alt"></i> Sair
+                            </a></li>
+                        </ul>
+                    `;
+                navbarNav.appendChild(userItem);
+            }
+        });
+    </script>
+    <!-- Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-book-reader"></i> Biblioteca Online
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="autores.html">Autores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="livros.html">Livros</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="emprestimos.html">Empréstimos</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="page-header">
+        <div class="container">
+            <h1><i class="fas fa-handshake"></i> Gerenciar Empréstimos</h1>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <div class="container-main">
+            <!-- Alertas -->
+            <div id="alertContainer"></div>
+
+            <!-- Botão Adicionar -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Controle de Empréstimos</h3>
+                <button class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#emprestimoModal"
+                    onclick="novoEmprestimo()">
+                    <i class="fas fa-plus"></i> Novo Empréstimo
+                </button>
+            </div>
+
+            <!-- Filtros -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <select class="form-select" id="filtroStatus" onchange="carregarEmprestimos()">
+                        <option value="">Todos os status</option>
+                        <option value="ATIVO">Ativos</option>
+                        <option value="DEVOLVIDO">Devolvidos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabela de Empréstimos -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Livro</th>
+                            <th>Usuário</th>
+                            <th>Email</th>
+                            <th>Data Empréstimo</th>
+                            <th>Devolução Prevista</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="emprestimosTable">
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulário -->
+    <div class="modal fade" id="emprestimoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Novo Empréstimo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="emprestimoForm">
+                        <input type="hidden" id="emprestimoId">
+
+                        <div class="mb-3">
+                            <label for="livro" class="form-label">Livro *</label>
+                            <select class="form-select" id="livro" required>
+                                <option value="">Selecione um livro</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nomeUsuario" class="form-label">Nome do Usuário *</label>
+                                <input type="text" class="form-control" id="nomeUsuario" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="emailUsuario" class="form-label">Email do Usuário *</label>
+                                <input type="email" class="form-control" id="emailUsuario" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="dataEmprestimo" class="form-label">Data do Empréstimo *</label>
+                                <input type="date" class="form-control" id="dataEmprestimo" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dataDevolucaoPrevista" class="form-label">Devolução Prevista *</label>
+                                <input type="date" class="form-control" id="dataDevolucaoPrevista" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="dataDevolucaoReal" class="form-label">Data Devolução Real</label>
+                                <input type="date" class="form-control" id="dataDevolucaoReal">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status *</label>
+                                <select class="form-select" id="status" required>
+                                    <option value="ATIVO">Ativo</option>
+                                    <option value="DEVOLVIDO">Devolvido</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-custom" onclick="salvarEmprestimo()">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = 'https://sistema-biblioteca-api.onrender.com/api';
+        let modalInstance;
+        let livros = [];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function () {
+            modalInstance = new bootstrap.Modal(document.getElementById('emprestimoModal'));
+            carregarLivros();
+            carregarEmprestimos();
+
+            // Definir data de hoje como padrão
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('dataEmprestimo').value = hoje;
+
+            // Definir data de devolução prevista (7 dias)
+            const devolucao = new Date();
+            devolucao.setDate(devolucao.getDate() + 7);
+            document.getElementById('dataDevolucaoPrevista').value = devolucao.toISOString().split('T')[0];
+        });
+
+        // Carregar livros para o select
+        async function carregarLivros() {
+            try {
+                const response = await fetch(`${API_URL}/livros`);
+                livros = await response.json();
+
+                const select = document.getElementById('livro');
+                select.innerHTML = '<option value="">Selecione um livro</option>' +
+                    livros.filter(l => l.quantidadeDisponivel > 0)
+                        .map(l => `<option value="${l.id}">${l.titulo} (${l.quantidadeDisponivel} disponíveis)</option>`)
+                        .join('');
+            } catch (error) {
+                console.error('Erro ao carregar livros:', error);
+            }
+        }
+
+        // Carregar empréstimos
+        async function carregarEmprestimos() {
+            try {
+                const response = await fetch(`${API_URL}/emprestimos`);
+                let emprestimos = await response.json();
+
+                const filtroStatus = document.getElementById('filtroStatus').value;
+                if (filtroStatus) {
+                    emprestimos = emprestimos.filter(e => e.status === filtroStatus);
+                }
+
+                const tbody = document.getElementById('emprestimosTable');
+
+                if (emprestimos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">Nenhum empréstimo encontrado</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = emprestimos.map(emp => {
+                    const hoje = new Date();
+                    const devolucaoPrevista = new Date(emp.dataDevolucaoPrevista + 'T00:00:00');
+                    const atrasado = emp.status === 'ATIVO' && hoje > devolucaoPrevista;
+
+                    let badgeStatus = '';
+                    if (emp.status === 'DEVOLVIDO') {
+                        badgeStatus = '<span class="badge badge-devolvido">Devolvido</span>';
+                    } else if (atrasado) {
+                        badgeStatus = '<span class="badge badge-atrasado">Atrasado</span>';
+                    } else {
+                        badgeStatus = '<span class="badge badge-ativo">Ativo</span>';
+                    }
+
+                    return `
+                        <tr>
+                            <td>${emp.id}</td>
+                            <td><strong>${emp.livro.titulo}</strong></td>
+                            <td>${emp.nomeUsuario}</td>
+                            <td>${emp.emailUsuario}</td>
+                            <td>${formatarData(emp.dataEmprestimo)}</td>
+                            <td>${formatarData(emp.dataDevolucaoPrevista)}</td>
+                            <td>${badgeStatus}</td>
+                            <td class="action-buttons">
+                                ${emp.status === 'ATIVO' ?
+                            `<button class="btn btn-sm btn-success" onclick="devolverLivro(${emp.id})" title="Devolver">
+                                        <i class="fas fa-check"></i>
+                                    </button>` : ''}
+                                <button class="btn btn-sm btn-info" onclick="visualizarEmprestimo(${emp.id})" title="Visualizar">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="editarEmprestimo(${emp.id})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deletarEmprestimo(${emp.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar empréstimos: ' + error.message, 'danger');
+                document.getElementById('emprestimosTable').innerHTML =
+                    '<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>';
+            }
+        }
+
+        // Novo empréstimo
+        function novoEmprestimo() {
+            document.getElementById('modalTitle').textContent = 'Novo Empréstimo';
+            document.getElementById('emprestimoForm').reset();
+            document.getElementById('emprestimoId').value = '';
+
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('dataEmprestimo').value = hoje;
+
+            const devolucao = new Date();
+            devolucao.setDate(devolucao.getDate() + 7);
+            document.getElementById('dataDevolucaoPrevista').value = devolucao.toISOString().split('T')[0];
+
+            document.getElementById('status').value = 'ATIVO';
+            carregarLivros();
+        }
+
+        // Editar empréstimo
+        async function editarEmprestimo(id) {
+            try {
+                const response = await fetch(`${API_URL}/emprestimos/${id}`);
+                const emp = await response.json();
+
+                document.getElementById('modalTitle').textContent = 'Editar Empréstimo';
+                document.getElementById('emprestimoId').value = emp.id;
+                document.getElementById('livro').value = emp.livro.id;
+                document.getElementById('nomeUsuario').value = emp.nomeUsuario;
+                document.getElementById('emailUsuario').value = emp.emailUsuario;
+                document.getElementById('dataEmprestimo').value = emp.dataEmprestimo;
+                document.getElementById('dataDevolucaoPrevista').value = emp.dataDevolucaoPrevista;
+                document.getElementById('dataDevolucaoReal').value = emp.dataDevolucaoReal || '';
+                document.getElementById('status').value = emp.status;
+
+                modalInstance.show();
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar empréstimo: ' + error.message, 'danger');
+            }
+        }
+
+        // Visualizar empréstimo
+        async function visualizarEmprestimo(id) {
+            try {
+                const response = await fetch(`${API_URL}/emprestimos/${id}`);
+                const emp = await response.json();
+
+                const detalhes = `
+                    <strong>ID:</strong> ${emp.id}<br>
+                    <strong>Livro:</strong> ${emp.livro.titulo}<br>
+                    <strong>Usuário:</strong> ${emp.nomeUsuario}<br>
+                    <strong>Email:</strong> ${emp.emailUsuario}<br>
+                    <strong>Data Empréstimo:</strong> ${formatarData(emp.dataEmprestimo)}<br>
+                    <strong>Devolução Prevista:</strong> ${formatarData(emp.dataDevolucaoPrevista)}<br>
+                    <strong>Devolução Real:</strong> ${emp.dataDevolucaoReal ? formatarData(emp.dataDevolucaoReal) : 'Não devolvido'}<br>
+                    <strong>Status:</strong> ${emp.status}
+                `;
+
+                mostrarAlerta(detalhes, 'info');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar empréstimo: ' + error.message, 'danger');
+            }
+        }
+
+        // Devolver livro
+        async function devolverLivro(id) {
+            if (!confirm('Confirmar devolução do livro?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/emprestimos/${id}`);
+                const emp = await response.json();
+
+                emp.dataDevolucaoReal = new Date().toISOString().split('T')[0];
+                emp.status = 'DEVOLVIDO';
+
+                const updateResponse = await fetch(`${API_URL}/emprestimos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(emp)
+                });
+
+                if (updateResponse.ok) {
+                    mostrarAlerta('Livro devolvido com sucesso!', 'success');
+                    carregarEmprestimos();
+                } else {
+                    mostrarAlerta('Erro ao registrar devolução', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao devolver livro: ' + error.message, 'danger');
+            }
+        }
+
+        // Salvar empréstimo
+        async function salvarEmprestimo() {
+            const id = document.getElementById('emprestimoId').value;
+            const livroId = document.getElementById('livro').value;
+
+            const emprestimo = {
+                livro: { id: parseInt(livroId) },
+                nomeUsuario: document.getElementById('nomeUsuario').value,
+                emailUsuario: document.getElementById('emailUsuario').value,
+                dataEmprestimo: document.getElementById('dataEmprestimo').value,
+                dataDevolucaoPrevista: document.getElementById('dataDevolucaoPrevista').value,
+                dataDevolucaoReal: document.getElementById('dataDevolucaoReal').value || null,
+                status: document.getElementById('status').value
+            };
+
+            if (!livroId || !emprestimo.nomeUsuario || !emprestimo.emailUsuario) {
+                mostrarAlerta('Preencha todos os campos obrigatórios!', 'warning');
+                return;
+            }
+
+            try {
+                const url = id ? `${API_URL}/emprestimos/${id}` : `${API_URL}/emprestimos`;
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(emprestimo)
+                });
+
+                if (response.ok) {
+                    mostrarAlerta(`Empréstimo ${id ? 'atualizado' : 'cadastrado'} com sucesso!`, 'success');
+                    modalInstance.hide();
+                    carregarEmprestimos();
+                } else {
+                    const error = await response.text();
+                    mostrarAlerta('Erro ao salvar: ' + error, 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao salvar empréstimo: ' + error.message, 'danger');
+            }
+        }
+
+        // Deletar empréstimo
+        async function deletarEmprestimo(id) {
+            if (!confirm('Deseja realmente excluir este empréstimo?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/emprestimos/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('Empréstimo excluído com sucesso!', 'success');
+                    carregarEmprestimos();
+                } else {
+                    mostrarAlerta('Erro ao excluir empréstimo', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao excluir empréstimo: ' + error.message, 'danger');
+            }
+        }
+
+        // Utilitários
+        function formatarData(data) {
+            return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${mensagem}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alert);
+
+            setTimeout(() => alert.remove(), 5000);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Livros - Sistema Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+
+        .container-main {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-header {
+            color: white;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-custom:hover {
+            transform: scale(1.05);
+            color: white;
+        }
+
+        .badge-disponivel {
+            background-color: #28a745;
+        }
+
+        .badge-indisponivel {
+            background-color: #dc3545;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .action-buttons button {
+            margin: 0 5px;
+        }
+
+        .navbar-dark {
+            background: rgba(0, 0, 0, 0.2) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sistema de Autenticação -->
+    <script src="js/auth.js"></script>
+    <script>
+        // Proteger página - requer login
+        Auth.protectPage();
+
+        // Exibir informações do usuário no navbar
+        document.addEventListener('DOMContentLoaded', function () {
+            const user = Auth.getUser();
+            if (user) {
+                const navbarNav = document.querySelector('.navbar-nav');
+                const userItem = document.createElement('li');
+                userItem.className = 'nav-item dropdown';
+                userItem.innerHTML = `
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> ${user.nome}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Perfil</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Configurações</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="Auth.logout(); return false;">
+                                <i class="fas fa-sign-out-alt"></i> Sair
+                            </a></li>
+                        </ul>
+                    `;
+                navbarNav.appendChild(userItem);
+            }
+        });
+    </script>
+    <!-- Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-book-reader"></i> Biblioteca Online
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="autores.html">Autores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="livros.html">Livros</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="emprestimos.html">Empréstimos</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="page-header">
+        <div class="container">
+            <h1><i class="fas fa-book"></i> Gerenciar Livros</h1>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <div class="container-main">
+            <!-- Alertas -->
+            <div id="alertContainer"></div>
+
+            <!-- Botão Adicionar -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Acervo de Livros</h3>
+                <button class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#livroModal"
+                    onclick="novoLivro()">
+                    <i class="fas fa-plus"></i> Novo Livro
+                </button>
+            </div>
+
+            <!-- Tabela de Livros -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Autor</th>
+                            <th>ISBN</th>
+                            <th>Gênero</th>
+                            <th>Disponibilidade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="livrosTable">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulário -->
+    <div class="modal fade" id="livroModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Novo Livro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="livroForm">
+                        <input type="hidden" id="livroId">
+
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label">Título *</label>
+                            <input type="text" class="form-control" id="titulo" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="autor" class="form-label">Autor</label>
+                                <select class="form-select" id="autor">
+                                    <option value="">Selecione um autor</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="isbn" class="form-label">ISBN</label>
+                                <input type="text" class="form-control" id="isbn">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="anoPublicacao" class="form-label">Ano de Publicação</label>
+                                <input type="number" class="form-control" id="anoPublicacao" min="1000" max="2099">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="genero" class="form-label">Gênero</label>
+                                <input type="text" class="form-control" id="genero" placeholder="Ex: Romance, Ficção">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="quantidadeTotal" class="form-label">Quantidade Total *</label>
+                                <input type="number" class="form-control" id="quantidadeTotal" min="0" value="1"
+                                    required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="quantidadeDisponivel" class="form-label">Quantidade Disponível *</label>
+                                <input type="number" class="form-control" id="quantidadeDisponivel" min="0" value="1"
+                                    required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-custom" onclick="salvarLivro()">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = 'https://sistema-biblioteca-api.onrender.com/api';
+        let modalInstance;
+        let autores = [];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function () {
+            modalInstance = new bootstrap.Modal(document.getElementById('livroModal'));
+            carregarAutores();
+            carregarLivros();
+        });
+
+        // Carregar autores para o select
+        async function carregarAutores() {
+            try {
+                const response = await fetch(`${API_URL}/autores`);
+                autores = await response.json();
+
+                const select = document.getElementById('autor');
+                select.innerHTML = '<option value="">Selecione um autor</option>' +
+                    autores.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
+            } catch (error) {
+                console.error('Erro ao carregar autores:', error);
+            }
+        }
+
+        // Carregar livros
+        async function carregarLivros() {
+            try {
+                const response = await fetch(`${API_URL}/livros`);
+                const livros = await response.json();
+
+                const tbody = document.getElementById('livrosTable');
+
+                if (livros.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum livro cadastrado</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = livros.map(livro => {
+                    const disponibilidade = livro.quantidadeDisponivel > 0 ?
+                        `<span class="badge badge-disponivel">${livro.quantidadeDisponivel}/${livro.quantidadeTotal} disponíveis</span>` :
+                        `<span class="badge badge-indisponivel">Indisponível</span>`;
+
+                    return `
+                        <tr>
+                            <td>${livro.id}</td>
+                            <td><strong>${livro.titulo}</strong></td>
+                            <td>${livro.autor ? livro.autor.nome : '-'}</td>
+                            <td>${livro.isbn || '-'}</td>
+                            <td>${livro.genero || '-'}</td>
+                            <td>${disponibilidade}</td>
+                            <td class="action-buttons">
+                                <button class="btn btn-sm btn-info" onclick="visualizarLivro(${livro.id})" title="Visualizar">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="editarLivro(${livro.id})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deletarLivro(${livro.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar livros: ' + error.message, 'danger');
+                document.getElementById('livrosTable').innerHTML =
+                    '<tr><td colspan="7" class="text-center text-danger">Erro ao carregar dados</td></tr>';
+            }
+        }
+
+        // Novo livro
+        function novoLivro() {
+            document.getElementById('modalTitle').textContent = 'Novo Livro';
+            document.getElementById('livroForm').reset();
+            document.getElementById('livroId').value = '';
+            document.getElementById('quantidadeTotal').value = '1';
+            document.getElementById('quantidadeDisponivel').value = '1';
+        }
+
+        // Editar livro
+        async function editarLivro(id) {
+            try {
+                const response = await fetch(`${API_URL}/livros/${id}`);
+                const livro = await response.json();
+
+                document.getElementById('modalTitle').textContent = 'Editar Livro';
+                document.getElementById('livroId').value = livro.id;
+                document.getElementById('titulo').value = livro.titulo;
+                document.getElementById('autor').value = livro.autor ? livro.autor.id : '';
+                document.getElementById('isbn').value = livro.isbn || '';
+                document.getElementById('anoPublicacao').value = livro.anoPublicacao || '';
+                document.getElementById('genero').value = livro.genero || '';
+                document.getElementById('quantidadeTotal').value = livro.quantidadeTotal || 0;
+                document.getElementById('quantidadeDisponivel').value = livro.quantidadeDisponivel || 0;
+
+                modalInstance.show();
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar livro: ' + error.message, 'danger');
+            }
+        }
+
+        // Visualizar livro
+        async function visualizarLivro(id) {
+            try {
+                const response = await fetch(`${API_URL}/livros/${id}`);
+                const livro = await response.json();
+
+                const detalhes = `
+                    <strong>ID:</strong> ${livro.id}<br>
+                    <strong>Título:</strong> ${livro.titulo}<br>
+                    <strong>Autor:</strong> ${livro.autor ? livro.autor.nome : '-'}<br>
+                    <strong>ISBN:</strong> ${livro.isbn || '-'}<br>
+                    <strong>Ano:</strong> ${livro.anoPublicacao || '-'}<br>
+                    <strong>Gênero:</strong> ${livro.genero || '-'}<br>
+                    <strong>Quantidade Total:</strong> ${livro.quantidadeTotal}<br>
+                    <strong>Quantidade Disponível:</strong> ${livro.quantidadeDisponivel}
+                `;
+
+                mostrarAlerta(detalhes, 'info');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar livro: ' + error.message, 'danger');
+            }
+        }
+
+        // Salvar livro
+        async function salvarLivro() {
+            const id = document.getElementById('livroId').value;
+            const autorId = document.getElementById('autor').value;
+
+            const livro = {
+                titulo: document.getElementById('titulo').value,
+                isbn: document.getElementById('isbn').value || null,
+                anoPublicacao: document.getElementById('anoPublicacao').value || null,
+                genero: document.getElementById('genero').value || null,
+                quantidadeTotal: parseInt(document.getElementById('quantidadeTotal').value),
+                quantidadeDisponivel: parseInt(document.getElementById('quantidadeDisponivel').value),
+                autor: autorId ? { id: parseInt(autorId) } : null
+            };
+
+            if (!livro.titulo) {
+                mostrarAlerta('Título é obrigatório!', 'warning');
+                return;
+            }
+
+            if (livro.quantidadeDisponivel > livro.quantidadeTotal) {
+                mostrarAlerta('Quantidade disponível não pode ser maior que quantidade total!', 'warning');
+                return;
+            }
+
+            try {
+                const url = id ? `${API_URL}/livros/${id}` : `${API_URL}/livros`;
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(livro)
+                });
+
+                if (response.ok) {
+                    mostrarAlerta(`Livro ${id ? 'atualizado' : 'cadastrado'} com sucesso!`, 'success');
+                    modalInstance.hide();
+                    carregarLivros();
+                } else {
+                    const error = await response.text();
+                    mostrarAlerta('Erro ao salvar: ' + error, 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao salvar livro: ' + error.message, 'danger');
+            }
+        }
+
+        // Deletar livro
+        async function deletarLivro(id) {
+            if (!confirm('Deseja realmente excluir este livro?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/livros/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('Livro excluído com sucesso!', 'success');
+                    carregarLivros();
+                } else {
+                    mostrarAlerta('Erro ao excluir livro', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao excluir livro: ' + error.message, 'danger');
+            }
+        }
+
+        // Utilitários
+        function mostrarAlerta(mensagem, tipo) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${mensagem}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alert);
+
+            setTimeout(() => alert.remove(), 5000);
+        }
+    </script>
+</body>
+
+</html>
