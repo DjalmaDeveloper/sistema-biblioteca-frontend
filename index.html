@@ -152,9 +152,6 @@
                     <li class="nav-item">
                         <a class="nav-link" href="emprestimos.html">Empréstimos</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="usuarios.html">Usuários</a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -172,6 +169,10 @@
     <div class="container">
         <div class="stats-section">
             <div class="row">
+                <div class="col-md-3 stat-item" id="usuariosCard" style="display: none;">
+                    <h2 id="totalUsuarios">-</h2>
+                    <p>Usuários Cadastrados</p>
+                </div>
                 <div class="col-md-4 stat-item">
                     <h2 id="totalAutores">-</h2>
                     <p>Autores Cadastrados</p>
@@ -223,6 +224,27 @@
         // Carregar estatísticas
         async function loadStatistics() {
             try {
+                const user = Auth.getUser();
+                const isAdmin = Auth.isAdmin();
+
+                // Buscar usuários (apenas ADMIN)
+                if (isAdmin) {
+                    try {
+                        const usuarios = await fetchAPI('/usuarios');
+                        document.getElementById('totalUsuarios').textContent = usuarios.length;
+                        document.getElementById('usuariosCard').style.display = 'block';
+                        // Ajustar grid quando mostrar usuários
+                        document.querySelectorAll('.stat-item').forEach(item => {
+                            if (!item.id || item.id !== 'usuariosCard') {
+                                item.classList.remove('col-md-4');
+                                item.classList.add('col-md-3');
+                            }
+                        });
+                    } catch (error) {
+                        console.warn('Sem permissão para visualizar usuários');
+                    }
+                }
+
                 // Buscar autores
                 const autores = await fetchAPI('/autores');
                 document.getElementById('totalAutores').textContent = autores.length;
