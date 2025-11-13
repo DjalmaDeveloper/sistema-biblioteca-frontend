@@ -225,21 +225,6 @@
     <script>
         let modalInstance;
 
-        // Obter token de autenticação
-        function getAuthToken() {
-            return Auth.getToken();
-        }
-
-        // Obter headers com autenticação
-        function getAuthHeaders(extraHeaders = {}) {
-            const token = getAuthToken();
-            return {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                ...extraHeaders
-            };
-        }
-
         // Inicializar
         document.addEventListener('DOMContentLoaded', function () {
             const modalElement = document.getElementById('autorModal');
@@ -252,22 +237,7 @@
         // Carregar autores
         async function carregarAutores() {
             try {
-                const response = await fetch(`${window.API_URL}/autores`, {
-                    headers: getAuthHeaders()
-                });
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        mostrarAlerta('Sessão expirada. Faça login novamente.', 'warning');
-                        setTimeout(() => {
-                            Auth.logout();
-                        }, 2000);
-                        return;
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const autores = await response.json();
+                const autores = await fetchAPI('/autores');
                 const tbody = document.getElementById('autoresTable');
 
                 if (!tbody) {
@@ -319,15 +289,7 @@
         // Editar autor
         async function editarAutor(id) {
             try {
-                const response = await fetch(`${window.API_URL}/autores/${id}`, {
-                    headers: getAuthHeaders()
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const autor = await response.json();
+                const autor = await fetchAPI(`/autores/${id}`);
 
                 document.getElementById('modalTitle').textContent = 'Editar Autor';
                 document.getElementById('autorId').value = autor.id;
@@ -345,15 +307,7 @@
         // Visualizar autor
         async function visualizarAutor(id) {
             try {
-                const response = await fetch(`${window.API_URL}/autores/${id}`, {
-                    headers: getAuthHeaders()
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const autor = await response.json();
+                const autor = await fetchAPI(`/autores/${id}`);
 
                 const detalhes = `
                     <strong>ID:</strong> ${autor.id}<br>
@@ -385,23 +339,17 @@
             }
 
             try {
-                const url = id ? `${window.API_URL}/autores/${id}` : `${window.API_URL}/autores`;
+                const endpoint = id ? `/autores/${id}` : '/autores';
                 const method = id ? 'PUT' : 'POST';
 
-                const response = await fetch(url, {
+                await fetchAPI(endpoint, {
                     method: method,
-                    headers: getAuthHeaders(),
                     body: JSON.stringify(autor)
                 });
 
-                if (response.ok) {
-                    mostrarAlerta(`Autor ${id ? 'atualizado' : 'cadastrado'} com sucesso!`, 'success');
-                    modalInstance.hide();
-                    carregarAutores();
-                } else {
-                    const error = await response.text();
-                    mostrarAlerta('Erro ao salvar: ' + error, 'danger');
-                }
+                mostrarAlerta(`Autor ${id ? 'atualizado' : 'cadastrado'} com sucesso!`, 'success');
+                modalInstance.hide();
+                carregarAutores();
             } catch (error) {
                 mostrarAlerta('Erro ao salvar autor: ' + error.message, 'danger');
             }
@@ -412,17 +360,12 @@
             if (!confirm('Deseja realmente excluir este autor?')) return;
 
             try {
-                const response = await fetch(`${window.API_URL}/autores/${id}`, {
-                    method: 'DELETE',
-                    headers: getAuthHeaders()
+                await fetchAPI(`/autores/${id}`, {
+                    method: 'DELETE'
                 });
 
-                if (response.ok) {
-                    mostrarAlerta('Autor excluído com sucesso!', 'success');
-                    carregarAutores();
-                } else {
-                    mostrarAlerta('Erro ao excluir autor', 'danger');
-                }
+                mostrarAlerta('Autor excluído com sucesso!', 'success');
+                carregarAutores();
             } catch (error) {
                 mostrarAlerta('Erro ao excluir autor: ' + error.message, 'danger');
             }
@@ -448,3 +391,4 @@
 </body>
 
 </html>
+
