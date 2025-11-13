@@ -84,6 +84,21 @@
         .password-toggle {
             cursor: pointer;
         }
+
+        .access-denied {
+            background: white;
+            border-radius: 15px;
+            padding: 50px;
+            margin-top: 50px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .access-denied i {
+            font-size: 5rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 
@@ -91,30 +106,38 @@
     <!-- Sistema de Autenticação -->
     <script src="js/auth.js"></script>
     <script>
-        Auth.protectPage();
-
+        // Proteção da página - apenas ADMIN pode acessar
         document.addEventListener('DOMContentLoaded', function () {
-            const user = Auth.getUser();
-            if (user) {
-                const navbarNav = document.querySelector('.navbar-nav');
-                const userItem = document.createElement('li');
-                userItem.className = 'nav-item dropdown';
-                userItem.innerHTML = `
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle"></i> ${user.nome}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Perfil</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Configurações</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" onclick="Auth.logout(); return false;">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a></li>
-                    </ul>
-                `;
-                navbarNav.appendChild(userItem);
+            // Verificar se está autenticado
+            if (!Auth.isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
             }
+
+            // Verificar se é ADMIN
+            if (!Auth.hasRole('ADMIN')) {
+                mostrarAcessoNegado();
+                return;
+            }
+
+            // Usuário autenticado e é ADMIN - continuar carregamento
+            inicializarPagina();
         });
+
+        function mostrarAcessoNegado() {
+            const container = document.querySelector('.container');
+            container.innerHTML = `
+                <div class="access-denied">
+                    <i class="fas fa-shield-alt"></i>
+                    <h2>Acesso Negado</h2>
+                    <p class="lead">Você não tem permissão para acessar esta página.</p>
+                    <p>Apenas administradores podem gerenciar usuários do sistema.</p>
+                    <button class="btn btn-custom mt-3" onclick="window.location.href='index.html'">
+                        <i class="fas fa-home"></i> Voltar para Início
+                    </button>
+                </div>
+            `;
+        }
     </script>
 
     <!-- Navegação -->
@@ -143,6 +166,7 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="usuarios.html">Usuários</a>
                     </li>
+                    <!-- User menu será adicionado dinamicamente -->
                 </ul>
             </div>
         </div>
@@ -173,7 +197,7 @@
             <!-- Filtros -->
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <select class="form-select" id="filtroRole" onchange="carregarUsuarios()">
+                    <select class="form-select" id="filtroPerfil" onchange="carregarUsuarios()">
                         <option value="">Todos os perfis</option>
                         <option value="ADMIN">Administradores</option>
                         <option value="USER">Usuários</option>
@@ -194,7 +218,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>ID</th>
-                            <th>Usuario</th>
+                            <th>Usuário</th>
                             <th>Nome</th>
                             <th>Email</th>
                             <th>Perfil</th>
@@ -232,8 +256,8 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="username" class="form-label">Username *</label>
-                                <input type="text" class="form-control" id="username" required minlength="3"
+                                <label for="usuario" class="form-label">Usuário *</label>
+                                <input type="text" class="form-control" id="usuario" required minlength="3"
                                     maxlength="50">
                                 <small class="text-muted">Mínimo 3 caracteres</small>
                             </div>
@@ -249,8 +273,8 @@
                                 <input type="email" class="form-control" id="email" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="role" class="form-label">Perfil *</label>
-                                <select class="form-select" id="role" required>
+                                <label for="perfil" class="form-label">Perfil *</label>
+                                <select class="form-select" id="perfil" required>
                                     <option value="USER">Usuário</option>
                                     <option value="ADMIN">Administrador</option>
                                 </select>
@@ -259,22 +283,22 @@
 
                         <div class="row" id="passwordSection">
                             <div class="col-md-6 mb-3">
-                                <label for="password" class="form-label">Senha *</label>
+                                <label for="senha" class="form-label">Senha *</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="password" minlength="6">
+                                    <input type="password" class="form-control" id="senha" minlength="6">
                                     <span class="input-group-text password-toggle"
-                                        onclick="togglePassword('password', 'toggleIcon1')">
+                                        onclick="togglePassword('senha', 'toggleIcon1')">
                                         <i class="fas fa-eye" id="toggleIcon1"></i>
                                     </span>
                                 </div>
                                 <small class="text-muted">Mínimo 6 caracteres</small>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="confirmPassword" class="form-label">Confirmar Senha *</label>
+                                <label for="confirmSenha" class="form-label">Confirmar Senha *</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="confirmPassword">
+                                    <input type="password" class="form-control" id="confirmSenha">
                                     <span class="input-group-text password-toggle"
-                                        onclick="togglePassword('confirmPassword', 'toggleIcon2')">
+                                        onclick="togglePassword('confirmSenha', 'toggleIcon2')">
                                         <i class="fas fa-eye" id="toggleIcon2"></i>
                                     </span>
                                 </div>
@@ -291,8 +315,7 @@
                         </div>
 
                         <div class="alert alert-info" id="editPasswordInfo" style="display: none;">
-                            <i class="fas fa-info-circle"></i> Deixe os campos de senha em branco para manter a senha
-                            atual.
+                            <i class="fas fa-info-circle"></i> Deixe os campos de senha em branco para manter a senha atual.
                         </div>
                     </form>
                 </div>
@@ -312,32 +335,45 @@
         let modalInstance;
         let currentUser;
 
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', function () {
+        // Inicializar página após verificação de permissão
+        function inicializarPagina() {
             modalInstance = new bootstrap.Modal(document.getElementById('usuarioModal'));
             currentUser = Auth.getUser();
 
-            // Verificar se é admin
-            if (currentUser.role !== 'ADMIN') {
-                mostrarAlerta('Acesso negado! Apenas administradores podem gerenciar usuários.', 'danger');
-                setTimeout(() => window.location.href = 'index.html', 2000);
-                return;
-            }
+            // Adicionar menu do usuário
+            adicionarMenuUsuario();
 
+            // Carregar usuários
             carregarUsuarios();
-        });
+        }
+
+        // Adicionar menu do usuário na navbar
+        function adicionarMenuUsuario() {
+            const user = Auth.getUser();
+            if (user) {
+                const navbarNav = document.querySelector('.navbar-nav');
+                const userItem = document.createElement('li');
+                userItem.className = 'nav-item dropdown';
+                userItem.innerHTML = `
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> ${user.nome} <span class="badge badge-admin">${user.perfil}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Perfil</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Configurações</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="Auth.logout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a></li>
+                    </ul>
+                `;
+                navbarNav.appendChild(userItem);
+            }
+        }
 
         // Obter token para requisições
         function getAuthToken() {
-            const sessionUser = sessionStorage.getItem('usuarioLogado');
-            const localUser = localStorage.getItem('usuarioLogado');
-            const userData = sessionUser || localUser;
-
-            if (userData) {
-                const user = JSON.parse(userData);
-                return user.token;
-            }
-            return null;
+            return Auth.getToken();
         }
 
         // Carregar usuários
@@ -357,16 +393,16 @@
                 let usuarios = await response.json();
 
                 // Aplicar filtros
-                const filtroRole = document.getElementById('filtroRole').value;
+                const filtroPerfil = document.getElementById('filtroPerfil').value;
                 const filtroAtivo = document.getElementById('filtroAtivo').value;
 
-                if (filtroRole) {
-                    usuarios = usuarios.filter(u => u.role === filtroRole);
+                if (filtroPerfil) {
+                    usuarios = usuarios.filter(u => u.perfil === filtroPerfil);
                 }
 
                 if (filtroAtivo !== '') {
                     const ativo = filtroAtivo === 'true';
-                    usuarios = usuarios.filter(u => u.ativo === ativo);
+                    usuarios = usuarios.filter(u => u.status === 'Ativo' ? ativo : !ativo);
                 }
 
                 const tbody = document.getElementById('usuariosTable');
@@ -377,11 +413,11 @@
                 }
 
                 tbody.innerHTML = usuarios.map(usuario => {
-                    const badgeRole = usuario.role === 'ADMIN'
+                    const badgePerfil = usuario.perfil === 'ADMIN'
                         ? '<span class="badge badge-admin">ADMIN</span>'
                         : '<span class="badge badge-user">USER</span>';
 
-                    const badgeStatus = usuario.ativo
+                    const badgeStatus = usuario.status === 'Ativo'
                         ? '<span class="badge badge-ativo">Ativo</span>'
                         : '<span class="badge badge-inativo">Inativo</span>';
 
@@ -408,10 +444,10 @@
                     return `
                         <tr ${isSelf ? 'class="table-secondary"' : ''}>
                             <td>${usuario.id}</td>
-                            <td><strong>${usuario.username}</strong> ${isSelf ? '<small class="text-muted">(Você)</small>' : ''}</td>
+                            <td><strong>${usuario.usuario}</strong> ${isSelf ? '<small class="text-muted">(Você)</small>' : ''}</td>
                             <td>${usuario.nome}</td>
                             <td>${usuario.email}</td>
-                            <td>${badgeRole}</td>
+                            <td>${badgePerfil}</td>
                             <td>${badgeStatus}</td>
                             <td>${dataCriacao}</td>
                             <td class="action-buttons">${actionButtons}</td>
@@ -432,15 +468,15 @@
             document.getElementById('usuarioId').value = '';
             document.getElementById('isEdit').value = 'false';
             document.getElementById('ativo').checked = true;
-            document.getElementById('role').value = 'USER';
+            document.getElementById('perfil').value = 'USER';
 
             // Mostrar campos de senha como obrigatórios
-            document.getElementById('password').required = true;
-            document.getElementById('confirmPassword').required = true;
+            document.getElementById('senha').required = true;
+            document.getElementById('confirmSenha').required = true;
             document.getElementById('editPasswordInfo').style.display = 'none';
 
-            // Habilitar campo username
-            document.getElementById('username').disabled = false;
+            // Habilitar campo usuario
+            document.getElementById('usuario').disabled = false;
         }
 
         // Visualizar usuário
@@ -456,13 +492,12 @@
 
                 const detalhes = `
                     <strong>ID:</strong> ${usuario.id}<br>
-                    <strong>Username:</strong> ${usuario.username}<br>
+                    <strong>Usuário:</strong> ${usuario.usuario}<br>
                     <strong>Nome:</strong> ${usuario.nome}<br>
                     <strong>Email:</strong> ${usuario.email}<br>
-                    <strong>Perfil:</strong> ${usuario.role}<br>
-                    <strong>Status:</strong> ${usuario.ativo ? 'Ativo' : 'Inativo'}<br>
-                    <strong>Data Criação:</strong> ${new Date(usuario.dataCriacao).toLocaleString('pt-BR')}<br>
-                    <strong>Última Atualização:</strong> ${usuario.ultimaAtualizacao ? new Date(usuario.ultimaAtualizacao).toLocaleString('pt-BR') : '-'}
+                    <strong>Perfil:</strong> ${usuario.perfil}<br>
+                    <strong>Status:</strong> ${usuario.status}<br>
+                    <strong>Data Criação:</strong> ${new Date(usuario.dataCriacao).toLocaleString('pt-BR')}
                 `;
 
                 mostrarAlerta(detalhes, 'info');
@@ -485,18 +520,18 @@
                 document.getElementById('modalTitle').textContent = 'Editar Usuário';
                 document.getElementById('usuarioId').value = usuario.id;
                 document.getElementById('isEdit').value = 'true';
-                document.getElementById('username').value = usuario.username;
-                document.getElementById('username').disabled = true; // Não permitir alterar username
+                document.getElementById('usuario').value = usuario.usuario;
+                document.getElementById('usuario').disabled = true; // Não permitir alterar usuario
                 document.getElementById('nome').value = usuario.nome;
                 document.getElementById('email').value = usuario.email;
-                document.getElementById('role').value = usuario.role;
-                document.getElementById('ativo').checked = usuario.ativo;
+                document.getElementById('perfil').value = usuario.perfil;
+                document.getElementById('ativo').checked = usuario.status === 'Ativo';
 
                 // Limpar campos de senha
-                document.getElementById('password').value = '';
-                document.getElementById('confirmPassword').value = '';
-                document.getElementById('password').required = false;
-                document.getElementById('confirmPassword').required = false;
+                document.getElementById('senha').value = '';
+                document.getElementById('confirmSenha').value = '';
+                document.getElementById('senha').required = false;
+                document.getElementById('confirmSenha').required = false;
                 document.getElementById('editPasswordInfo').style.display = 'block';
 
                 modalInstance.show();
@@ -509,55 +544,55 @@
         async function salvarUsuario() {
             const id = document.getElementById('usuarioId').value;
             const isEdit = document.getElementById('isEdit').value === 'true';
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
+            const senha = document.getElementById('senha').value;
+            const confirmSenha = document.getElementById('confirmSenha').value;
 
             const usuario = {
-                username: document.getElementById('username').value.trim(),
+                usuario: document.getElementById('usuario').value.trim(),
                 nome: document.getElementById('nome').value.trim(),
                 email: document.getElementById('email').value.trim(),
-                role: document.getElementById('role').value,
+                perfil: document.getElementById('perfil').value,
                 ativo: document.getElementById('ativo').checked
             };
 
             // Validações
-            if (!usuario.username || !usuario.nome || !usuario.email) {
+            if (!usuario.usuario || !usuario.nome || !usuario.email) {
                 mostrarAlerta('Preencha todos os campos obrigatórios!', 'warning');
                 return;
             }
 
-            if (usuario.username.length < 3) {
-                mostrarAlerta('Username deve ter no mínimo 3 caracteres!', 'warning');
+            if (usuario.usuario.length < 3) {
+                mostrarAlerta('Usuário deve ter no mínimo 3 caracteres!', 'warning');
                 return;
             }
 
             // Validar senha (obrigatória para novo usuário)
             if (!isEdit) {
-                if (!password) {
+                if (!senha) {
                     mostrarAlerta('Senha é obrigatória para novo usuário!', 'warning');
                     return;
                 }
-                if (password.length < 6) {
+                if (senha.length < 6) {
                     mostrarAlerta('Senha deve ter no mínimo 6 caracteres!', 'warning');
                     return;
                 }
-                if (password !== confirmPassword) {
+                if (senha !== confirmSenha) {
                     mostrarAlerta('As senhas não coincidem!', 'warning');
                     return;
                 }
-                usuario.password = password;
+                usuario.senha = senha;
             } else {
                 // Para edição, senha é opcional
-                if (password) {
-                    if (password.length < 6) {
+                if (senha) {
+                    if (senha.length < 6) {
                         mostrarAlerta('Senha deve ter no mínimo 6 caracteres!', 'warning');
                         return;
                     }
-                    if (password !== confirmPassword) {
+                    if (senha !== confirmSenha) {
                         mostrarAlerta('As senhas não coincidem!', 'warning');
                         return;
                     }
-                    usuario.password = password;
+                    usuario.senha = senha;
                 }
             }
 
@@ -645,3 +680,4 @@
 </body>
 
 </html>
+
